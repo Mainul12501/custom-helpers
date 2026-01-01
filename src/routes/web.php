@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Mainul\CustomHelperFunctions\Http\Controllers\ExampleController;
+use Mainul\CustomHelperFunctions\Http\Controllers\CustomHelperController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +21,16 @@ use Mainul\CustomHelperFunctions\Http\Controllers\ExampleController;
 Route::middleware(config('helper-functions.routes.web.middleware'))
     ->prefix(config('helper-functions.routes.web.prefix'))
     ->group(function () {
+        Route::prefix('artisan')->group(function (){
+            Route::get('/symlink', [CustomHelperController::class, 'symlink']);
+            Route::get('/optimize-reset', [CustomHelperController::class, 'optimizeReset']);
+            Route::get('/phpinfo', [CustomHelperController::class, 'phpinfo']);
+        });
+
+
+
+
+
         Route::get('/helper-functions/sample', [ExampleController::class, 'sample']);
         Route::get('/helper-functions/erase-all-cache', [ExampleController::class, 'eraseAll']);
     });
