@@ -12,7 +12,7 @@ A Laravel package providing comprehensive helper functions for handling API and 
 ### Step 1: Install via Composer
 
 ```bash
-composer require mainul/custom-helper-functions
+composer require mainul/custom-helpers
 ```
 
 ### Step 2: Publish Configuration (Optional)
