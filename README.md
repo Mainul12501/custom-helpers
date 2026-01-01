@@ -1,6 +1,6 @@
 # Helper Functions Package for Laravel
 
-A Laravel package providing comprehensive helper functions for handling API and web responses, authentication, OTP generation, and more.
+A Laravel package providing comprehensive helper functions for handling API and web responses, authentication, code generation, date formatting, file uploads, and more.
 
 ## Requirements
 
@@ -27,7 +27,6 @@ This will create a `config/helper-functions.php` file where you can customize:
 - Route settings (prefix, middleware)
 - Default error messages
 - API detection patterns
-- OTP configuration
 - And more
 
 ### Step 3: Publish Routes (Optional)
@@ -55,27 +54,6 @@ You can then update the routes in these files and disable the package routes in 
 ],
 ```
 
-## Package Structure
-
-```
-helper-functions/
-├── src/
-│   ├── config/
-│   │   └── helper-functions.php       # Configuration file
-│   ├── Facades/
-│   │   └── ViewHelper.php             # Facade for ViewHelper
-│   ├── Helpers/
-│   │   └── ViewHelper.php             # Main helper class
-│   ├── Http/
-│   │   └── Controllers/               # Controllers directory (for your custom controllers)
-│   ├── routes/
-│   │   ├── api.php                    # API routes
-│   │   └── web.php                    # Web routes
-│   └── HelperServiceProvider.php      # Service provider
-├── composer.json
-└── README.md
-```
-
 ## Configuration
 
 After publishing the config file, you can customize the package in `config/helper-functions.php`:
@@ -97,95 +75,117 @@ After publishing the config file, you can customize the package in `config/helpe
 ],
 ```
 
-### ViewHelper Configuration
+### CustomHelper Configuration
 
 ```php
-'view_helper' => [
+'custom_helper' => [
     'default_error_message' => 'Something went wrong. Please try again.',
     'no_data_message' => 'No Data found.',
     'default_success_message' => 'Operation completed successfully.',
-    'api_patterns' => ['/api/'],        // Patterns to detect API requests
     'api_guard' => 'sanctum',           // Auth guard for API
     'default_guard' => null,            // Default auth guard
 ],
 ```
 
-### OTP Configuration
-
-```php
-'otp' => [
-    'length' => 4,
-    'min' => 1000,
-    'max' => 9999,
-    'expiry_minutes' => 5,
-],
-```
-
 ## Usage
 
-### Using the ViewHelper Class
-
-You can use the ViewHelper class in two ways:
-
-#### 1. Direct Class Usage
+### Using the CustomHelper Class
 
 ```php
-use Mainul\CustomHelperFunctions\Helpers\ViewHelper;
+use Mainul\CustomHelperFunctions\Helpers\CustomHelper;
 
-// Check view for API
-return ViewHelper::checkViewForApi($data, 'users.index', $errorMessage);
+// Return data for web or API
+return CustomHelper::returnDataForWebOrApi($data, 'users.index', $errorMessage);
 
 // Return success message
-return ViewHelper::returnSuccessMessage('User created successfully');
+return CustomHelper::returnSuccessMessage('User created successfully');
 
 // Check authentication
-if (ViewHelper::authCheck()) {
-    $user = ViewHelper::loggedUser();
+if (CustomHelper::authCheck()) {
+    $user = CustomHelper::loggedUser();
 }
 
-// Generate OTP
-$otp = ViewHelper::generateOtp($mobile);
+// Generate code (OTP)
+$otp = CustomHelper::generateCode(6, 'number');
 
-// Get session OTP
-$sessionOtp = ViewHelper::getSessionOtp($mobile);
+// Get session code
+$sessionCode = CustomHelper::getSessionCode('mobile_123');
 ```
 
-#### 2. Using Facade
+## Available Methods
 
-```php
-use Mainul\CustomHelperFunctions\Facades\ViewHelper;
+### Response Methods
 
-return ViewHelper::checkViewForApi($data, 'users.index');
-```
+| Method | Description |
+|--------|-------------|
+| `returnDataForWebOrApi($data, $viewPath, $jsonErrorMessage, $isForRender, $isReturnBack, $successMsg)` | Return JSON for API/AJAX or view for web requests |
+| `returErrorMessage($message, $customMsg)` | Return error response for API or redirect back with error for web |
+| `returnSuccessMessage($message)` | Return success response for API or redirect back with success for web |
+| `returnRedirectWithMessage($route, $messageType, $message)` | Redirect to route with message (handles API/AJAX/web) |
 
-### Available Methods
+### Request Detection Methods
 
-#### Response Methods
+| Method | Description |
+|--------|-------------|
+| `isApiRequest()` | Check if current request is an API request |
+| `isAjax()` | Check if current request is an AJAX request |
+| `wantsJsonResponse()` | Check if request wants JSON response (API or AJAX) |
 
-- `checkViewForApi($data, $viewPath, $jsonErrorMessage)` - Return JSON for API or view for web
-- `returnBackViewAndSendDataForApiAndAjax($data, $viewPath, $jsonErrorMessage, $successMessage, $isReturnBack)` - Handle API/AJAX/web responses
-- `returnDataForAjaxAndApi($data)` - Return data for AJAX and API
-- `returnExceptionError($message)` - Return exception error response
-- `returnRedirectWithMessage($route, $messageType, $message)` - Redirect with message
-- `returnResponseFromPostRequest($status, $message)` - Return response from POST request
-- `returnSuccessMessage($message)` - Return success message
+### Authentication Methods
 
-#### Authentication Methods
+| Method | Description |
+|--------|-------------|
+| `authCheck()` | Check if user is authenticated (uses sanctum for API, default guard for web) |
+| `loggedUser()` | Get the currently logged-in user |
 
-- `authCheck()` - Check if user is authenticated
-- `loggedUser()` - Get logged-in user
-- `checkIfUserApprovedOrBlocked($user)` - Check user approval status
+### Code Generation Methods
 
-#### OTP Methods
+| Method | Description |
+|--------|-------------|
+| `generateCode($length, $type)` | Generate code - supports `number`, `alpha`, or `random` (alphanumeric) |
+| `generateSessionCode($length, $type, $sessionKey)` | Generate and store code in session/cache |
+| `getSessionCode($sessionKey)` | Retrieve generated code from session/cache |
 
-- `generateOtp($mobile)` - Generate OTP
-- `getSessionOtp($mobile)` - Get session OTP
+### Date & Time Methods
 
-#### Utility Methods
+| Method | Description |
+|--------|-------------|
+| `showDate($date)` | Format date as `d-m-Y` (e.g., 25-12-2024) |
+| `showTime($date)` | Format time as `g:i A` (e.g., 3:30 PM) |
+| `showDateTime($date)` | Format as `d-m-Y g:i A` (e.g., 25-12-2024 3:30 PM) |
+| `showDateTime24Hours($date)` | Format as `d-m-Y H:i` (e.g., 25-12-2024 15:30) |
+| `showDateForBlogType($date)` | Format as `F d, Y` (e.g., December 25, 2024) |
+| `dateWithTime($date)` | Format as `Y-m-d H:i` |
+| `currentDateWithTime()` | Get current date and time as `Y-m-d H:i` |
+| `getDurationAmongTwoDates($startDate, $endDate, $durationUnit, $isEndDateIsCurrentDate)` | Calculate duration between dates (years/months/days) |
+| `differTime($start, $end, $info)` | Get human-readable time difference |
 
-- `checkIfRequestFromApi()` - Check if request is from API
-- `getDurationAmongTwoDates($startDate, $endDate, $durationUnit, $isEndDateIsCurrentDate)` - Calculate duration between dates
-- `saveImagePathInJson($imageFileObject, $imageDirectory, $imageNameString, $width, $height, $previousJsonString)` - Save image paths in JSON
+### File Methods
+
+| Method | Description |
+|--------|-------------|
+| `getFileExtension($file)` | Get file extension |
+| `getFileType($file)` | Get file MIME type |
+| `fileUpload($fileObject, $directory, $nameString, $modelFileUrl)` | Upload file to specified directory |
+| `fileUploadByBase64($base64String, $imageDirectory, $imageNameString, $modelFileUrl)` | Upload file from base64 string |
+
+### Artisan Command Methods
+
+| Method | Description |
+|--------|-------------|
+| `startQueueWorkManuallyByArtisanCommand()` | Manually process the queue |
+| `clearRouteCache()` | Clear route cache |
+| `CacheRoute()` | Cache routes |
+| `optimizeClear()` | Clear all optimizations |
+| `clearCache()` | Clear application cache |
+
+### Controller Methods (CustomHelperController)
+
+| Route Method | Description |
+|--------------|-------------|
+| `symlink()` | Create storage symbolic link |
+| `optimizeReset()` | Clear all optimizations and return output |
+| `phpinfo()` | Display PHP information |
 
 ## Adding Custom Routes
 
@@ -195,7 +195,7 @@ Edit `src/routes/web.php` or `src/routes/api.php`:
 
 ```php
 use Illuminate\Support\Facades\Route;
-use Mainul\CustomHelperFunctions\Helpers\ViewHelper;
+use Mainul\CustomHelperFunctions\Helpers\CustomHelper;
 
 Route::get('/your-route', function () {
     // Your logic here
@@ -228,37 +228,12 @@ public function boot()
 }
 ```
 
-## Customization
-
-### Adding Custom Helpers
-
-Create your own helper classes in the `src/Helpers` directory and register them in the service provider.
-
-### Extending ViewHelper
-
-You can extend the ViewHelper class to add your own methods:
-
-```php
-namespace App\Helpers;
-
-use Mainul\CustomHelperFunctions\Helpers\ViewHelper as BaseViewHelper;
-
-class ViewHelper extends BaseViewHelper
-{
-    public static function yourCustomMethod()
-    {
-        // Your custom logic
-    }
-}
-```
-
 ## Optional Dependencies
 
 The package works with these optional packages:
 - `brian2694/laravel-toastr` - For flash messages (optional)
-- `xenon/laravel-bd-sms` - For SMS functionality (optional)
 
-If these packages are not installed, the package will skip the related functionality.
+If this package is not installed, the package will skip the related functionality.
 
 ## License
 
