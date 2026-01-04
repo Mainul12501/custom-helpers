@@ -69,7 +69,7 @@ class CustomHelper
 //    return error message
     public static function returErrorMessage ($message = null, $customMsg = null)
     {
-        if (self::isApiRequest() || self::isApiRequest())
+        if (self::isApiRequest() || self::isAjax())
         {
             return response()->json(['message' => $customMsg ?? $message, 'status' => 'error'], 422);
         } else {
@@ -80,7 +80,7 @@ class CustomHelper
 //    return success message
     public static function returnSuccessMessage($message = null)
     {
-        if (self::isApiRequest() || self::isApiRequest())
+        if (self::isApiRequest() || self::isAjax())
         {
             return response()->json(['message' => $message, 'status' => 'success'], 200);
         } else {
@@ -158,21 +158,42 @@ class CustomHelper
         return $otp;
     }
     //    set generated code from session
-    public static function generateSessionCode(int $length = 2, string $type = 'number', string $sessionKey = 'session_key')
+    public static function generateSessionCode(int $length = 2, string $type = 'number', string $sessionKey = 'session_key', int $expiryMinutes = 5)
     {
         $generate_code = self::generateCode($length, $type);
-        session()->put('generate_code', $generate_code);
+        // session()->put('generate_code', $generate_code);
+		session()->put('generate_code', [
+			'code' => $generate_code,
+			'expires_at' => now()->addMinutes($expiryMinutes)->timestamp
+		]);
         if (self::isApiRequest())
-            Cache::put('code_'.$sessionKey, $generate_code, now()->addMinutes(5));
+            Cache::put('code_'.$sessionKey, $generate_code, now()->addMinutes(expiryMinutes));
         return $generate_code;
     }
 //    get generated code from session
     public static function getSessionCode($sessionKey = 'session_key')
     {
-        if (self::isApiRequest())
-            $generate_code = Cache::get('code_'.$sessionKey);
-        else
-            $generate_code = session('generate_code');
+        // if (self::isApiRequest())
+            // $generate_code = Cache::get('code_'.$sessionKey);
+        // else
+            // $generate_code = session('generate_code');
+		
+	if (self::isApiRequest()) {
+        $generate_code = Cache::get('code_'.$sessionKey);
+    } else {
+        $data = session('generate_code');
+        
+        // Check if data exists and has not expired
+        if ($data && is_array($data)) {
+            if (now()->timestamp > $data['expires_at']) {
+                session()->forget('generate_code');
+                return null;
+            }
+            $generate_code = $data['code'];
+        } else {
+            $generate_code = $data; // Backward compatibility for old format
+        }
+    }
 
         return $generate_code;
     }
