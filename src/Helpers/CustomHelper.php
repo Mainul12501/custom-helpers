@@ -7,6 +7,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 
 class CustomHelper
 {
@@ -371,5 +373,56 @@ class CustomHelper
         file_put_contents(public_path($path), $imageData);
         return $path;
     }
+	// handle api request
+	public static function requestApi(
+        string $url,
+        string $method = 'GET',
+        array $data = [],
+        array $headers = [],
+        int $timeout = 30
+    ): array {
+        $client = new Client([
+            'timeout' => $timeout,
+        ]);
 
+        $options = [
+            'headers' => $headers,
+        ];
+
+        $method = strtoupper($method);
+
+        // GET / DELETE → query params
+        if (in_array($method, ['GET', 'DELETE'])) {
+            $options['query'] = $data;
+        }
+
+        // POST / PUT / PATCH → body
+        if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            $options['json'] = $data;
+        }
+
+        try {
+            $response = $client->request($method, $url, $options);
+
+            return [
+                'success' => true,
+                'status' => $response->getStatusCode(),
+                'data' => json_decode($response->getBody()->getContents(), true),
+//                'headers' => $response->getHeaders(),
+            ];
+
+        } catch (RequestException $e) {
+
+            return [
+                'success' => false,
+                'status' => $e->hasResponse()
+                    ? $e->getResponse()->getStatusCode()
+                    : 500,
+                'message' => $e->getMessage(),
+                'error' => $e->hasResponse()
+                    ? json_decode($e->getResponse()->getBody()->getContents(), true)
+                    : null,
+            ];
+        }
+    }
 }

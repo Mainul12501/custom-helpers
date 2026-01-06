@@ -4,6 +4,7 @@ namespace Mainul\CustomHelperFunctions\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Routing\Controller;
 
 class CustomHelperController extends Controller
 {
