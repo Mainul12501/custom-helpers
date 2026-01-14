@@ -401,6 +401,8 @@ class CustomHelper
             $options['json'] = $data;
         }
 
+		$url = env('REST_API_DOMAIN').$url;
+
         try {
             $response = $client->request($method, $url, $options);
 
