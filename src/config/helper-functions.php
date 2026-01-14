@@ -75,12 +75,16 @@ return [
     | Custom Settings
     |--------------------------------------------------------------------------
     |
-    | Add your own custom configuration options here.
+    | Add custom configuration options here.
+	| 
+	| Rest API calling endpoint domain and key.
     |
     */
 
     'custom' => [
-        // Your custom settings
+        // custom config indexs
+        'rest_api_domain'   => env('REST_API_DOMAIN', ''),
+        'rest_api_key'      => env('REST_API_KEY', ''),
     ],
 
 ];
