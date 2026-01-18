@@ -321,9 +321,33 @@ class CustomHelper
     {
         Artisan::call('cache:clear');
     }
+	public static function migrate()
+    {
+        Artisan::call('migrate');
+    }
+    public static function migrateFresh()
+    {
+        Artisan::call('migrate:fresh');
+    }
+    public static function migrateFreshSeed()
+    {
+        Artisan::call('migrate:fresh --seed');
+    }
+	
+	//    check if file is an image
+    public static function isImageFile($file): bool
+    {
+        $imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+        return in_array($file->getMimeType(), $imageMimeTypes);
+    }
 
 //    file upload functions
-    public static function fileUpload ($fileObject, $directory, $nameString = null, $modelFileUrl = null)
+	public static function isInterventionImageInstalled(): bool
+    {
+        return class_exists(\Intervention\Image\ImageManager::class);
+    }
+	
+    public static function fileUpload ($fileObject, $directory, $nameString = null, $width = null, $height = null, $modelFileUrl = null)
     {
         if ($fileObject)
         {
@@ -333,7 +357,20 @@ class CustomHelper
             }
             $fileName       = $nameString.'-'.str_replace(' ', '-', pathinfo($fileObject->getClientOriginalName(), PATHINFO_FILENAME)).'_'.rand(100,100000).'.'.$fileObject->extension();
             $fileDirectory  = 'backend/assets/uploaded-files/'.$directory.'/';
-            $fileObject->move($fileDirectory, $fileName);
+			if (!File::isDirectory($fileDirectory))
+                File::makeDirectory($fileDirectory, 0777, true, true);
+			if (self::isInterventionImageInstalled()  && self::isImageFile($fileObject))
+            {
+                $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\GD\Driver());
+                $image = $manager->read($fileObject->getRealPath());
+                if (!empty($width) || !empty($height))
+                {
+                    $image->resize($width, $height);
+                }
+                $image->save($fileDirectory.$fileName, 90, true);
+            } else {
+                $fileObject->move($fileDirectory, $fileName);
+            }
             return $fileDirectory.$fileName;
         } else {
             if (isset($modelFileUrl))
