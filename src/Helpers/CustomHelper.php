@@ -3,12 +3,14 @@
 namespace Mainul\CustomHelperFunctions\Helpers;
 
 use Brian2694\Toastr\Facades\Toastr;
+use Composer\InstalledVersions;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Storage;
 
 class CustomHelper
 {
@@ -341,12 +343,50 @@ class CustomHelper
         return in_array($file->getMimeType(), $imageMimeTypes);
     }
 
-//    file upload functions
+    //    file upload functions
 	public static function isInterventionImageInstalled(): bool
     {
-        return class_exists(\Intervention\Image\ImageManager::class);
+        $composerJsonPath = base_path('composer.json');
+
+        if (!file_exists($composerJsonPath)) {
+            return false;
+        }
+
+        $composerJson = json_decode(file_get_contents($composerJsonPath), true);
+
+        // Check in both require and require-dev
+        $packages = array_merge(
+            $composerJson['require'] ?? [],
+            $composerJson['require-dev'] ?? []
+        );
+
+        return isset($packages['intervention/image']) ||
+            isset($packages['intervention/image-laravel']);
     }
-	
+
+    public static function isInterventionMasterPackageInstalled(): bool
+    {
+        if (class_exists(InstalledVersions::class)) {
+            if (InstalledVersions::isInstalled('intervention/image') ) {
+                return true;
+            }
+        }
+
+        return class_exists(\Intervention\Image\ImageManager::class) &&
+            class_exists(\Intervention\Image\Drivers\GD\Driver::class);
+    }
+
+    public static function isLaravelInterventionPackageInstalled(): bool
+    {
+        if (class_exists(InstalledVersions::class)) {
+            if (InstalledVersions::isInstalled('intervention/image-laravel') ) {
+                return true;
+            }
+        }
+
+        return class_exists(\Intervention\Image\Laravel\Facades\Image::class);
+    }
+
     public static function fileUpload ($fileObject, $directory, $nameString = null, $width = null, $height = null, $modelFileUrl = null)
     {
         if ($fileObject)
@@ -359,15 +399,67 @@ class CustomHelper
             $fileDirectory  = 'backend/assets/uploaded-files/'.$directory.'/';
 			if (!File::isDirectory($fileDirectory))
                 File::makeDirectory($fileDirectory, 0777, true, true);
+
 			if (self::isInterventionImageInstalled()  && self::isImageFile($fileObject))
             {
-                $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\GD\Driver());
-                $image = $manager->read($fileObject->getRealPath());
-                if (!empty($width) || !empty($height))
-                {
-                    $image->resize($width, $height);
+                try {
+                    $image = null;
+
+                    // Try Laravel Intervention package first
+                    if (self::isLaravelInterventionPackageInstalled())
+                    {
+                        $image = \Intervention\Image\Laravel\Facades\Image::read($fileObject->getRealPath());
+                    }
+                    // Fallback to master Intervention package
+                    elseif (self::isInterventionMasterPackageInstalled())
+                    {
+                        // Auto-detect best driver (Imagick preferred, fallback to GD)
+                        $driver = extension_loaded('imagick')
+                            ? new \Intervention\Image\Drivers\Imagick\Driver()
+                            : new \Intervention\Image\Drivers\Gd\Driver();
+
+                        $manager = new \Intervention\Image\ImageManager($driver);
+                        $image = $manager->read($fileObject->getRealPath());
+                    }
+
+                    // If image was successfully loaded
+                    if ($image !== null)
+                    {
+                        // Resize if dimensions provided
+                        if (!empty($width) && !empty($height))
+                        {
+                            // Resize to exact dimensions
+                            $image->resize($width, $height);
+                        }
+                        elseif (!empty($width))
+                        {
+                            // Resize width only, maintain aspect ratio
+                            $image->scale(width: $width);
+                        }
+                        elseif (!empty($height))
+                        {
+                            // Resize height only, maintain aspect ratio
+                            $image->scale(height: $height);
+                        }
+
+                        // Save with quality (remove the third parameter)
+                        $image->save($fileDirectory . $fileName, quality: 90);
+                    }
+                    else
+                    {
+                        // If image couldn't be loaded, use regular upload
+                        $fileObject->move($fileDirectory, $fileName);
+                    }
+
+                } catch (\Exception $e) {
+                    // Log error and fallback to regular upload
+                    \Log::warning('Intervention Image processing failed, using regular upload', [
+                        'error' => $e->getMessage(),
+                        'file' => $fileName
+                    ]);
+
+                    $fileObject->move($fileDirectory, $fileName);
                 }
-                $image->save($fileDirectory.$fileName, 90, true);
             } else {
                 $fileObject->move($fileDirectory, $fileName);
             }
@@ -463,5 +555,38 @@ class CustomHelper
                     : null,
             ];
         }
+    }
+
+    public static function deleteFile($filePath, $disk = null)
+    {
+        if (!$filePath)
+            return false;
+        
+        $multipleFiles = is_array($filePath);
+
+        $defaultDisk = $disk ?? config('filesystems.default');
+
+        if ($multipleFiles) {
+            foreach ($filePath as $file) {
+               self::deleteSingleFile($file, $defaultDisk);
+            }
+        } else {
+            self::deleteSingleFile($filePath, $defaultDisk);
+        }
+        return false;
+    }
+    
+    public static function deleteSingleFile($filePath, $disk = null)
+    {
+        if (file_exists($filePath))
+        {
+            unlink($filePath);
+            return true;
+        }
+
+        if (Storage::disk($disk)->exists($filePath)) {
+            return Storage::disk($disk)->delete($filePath);
+        }
+        return false;
     }
 }
