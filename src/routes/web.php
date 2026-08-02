@@ -24,7 +24,7 @@ Route::middleware(config('helper-functions.routes.web.middleware'))
         Route::prefix('artisan')->group(function (){
             Route::get('/symlink', [CustomHelperController::class, 'symlink']);
             Route::get('/optimize-reset', [CustomHelperController::class, 'optimizeReset']);
-            Route::get('/phpinfo', [CustomHelperController::class, 'phpinfo']);
+//            Route::get('/phpinfo', [CustomHelperController::class, 'phpinfo']);
         });
 
 
@@ -32,7 +32,7 @@ Route::middleware(config('helper-functions.routes.web.middleware'))
 
 
         Route::get('/helper-functions/sample', [ExampleController::class, 'sample']);
-        Route::get('/helper-functions/erase-all-cache', [ExampleController::class, 'eraseAll']);
+//        Route::get('/helper-functions/erase-all-cache', [ExampleController::class, 'eraseAll']);
     });
 
 // Add your custom routes here

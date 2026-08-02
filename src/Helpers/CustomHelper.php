@@ -46,10 +46,10 @@ class CustomHelper
             }
             if ($isReturnBack)
             {
-                Toastr::success($successMsg);
+                self::isToastrInstalled() && Toastr::success($successMsg);
                 return back()->with('success', $successMsg);
             }
-            Toastr::error('Something went wrong. Please try again');
+            self::isToastrInstalled() && Toastr::error('Something went wrong. Please try again');
             return back();
         }
     }
@@ -77,7 +77,7 @@ class CustomHelper
         {
             return response()->json(['message' => $customMsg ?? $message, 'status' => 'error'], 422);
         } else {
-            Toastr::error($message);
+            self::isToastrInstalled() && Toastr::error($message);
             return back()->with('error', $message);
         }
     }
@@ -88,7 +88,7 @@ class CustomHelper
         {
             return response()->json(['message' => $message, 'status' => 'success'], 200);
         } else {
-            Toastr::success($message);
+            self::isToastrInstalled() && Toastr::success($message);
             return back()->with('success', $message);
         }
     }
@@ -102,7 +102,7 @@ class CustomHelper
             else
                 return response()->json(['message' => $message, 'status' => 'success'], 200);
         } else {
-            $messageType == 'error' ? Toastr::error($message) : Toastr::success($message);
+            self::isToastrInstalled() && ($messageType == 'error' ? Toastr::error($message) : Toastr::success($message));
             return redirect($route)->with($messageType, $message);
         }
     }
@@ -171,7 +171,7 @@ class CustomHelper
 			'expires_at' => now()->addMinutes($expiryMinutes)->timestamp
 		]);
         if (self::isApiRequest())
-            Cache::put('code_'.$sessionKey, $generate_code, now()->addMinutes(expiryMinutes));
+            Cache::put('code_'.$sessionKey, $generate_code, now()->addMinutes($expiryMinutes));
         return $generate_code;
     }
 //    get generated code from session
@@ -333,7 +333,7 @@ class CustomHelper
     }
     public static function migrateFreshSeed()
     {
-        Artisan::call('migrate:fresh --seed');
+        Artisan::call('migrate:fresh', ['--seed' => true]);
     }
 	
 	//    check if file is an image
@@ -453,7 +453,7 @@ class CustomHelper
 
                 } catch (\Exception $e) {
                     // Log error and fallback to regular upload
-                    \Log::warning('Intervention Image processing failed, using regular upload', [
+                    \Illuminate\Support\Facades\Log::warning('Intervention Image processing failed, using regular upload', [
                         'error' => $e->getMessage(),
                         'file' => $fileName
                     ]);
@@ -474,7 +474,7 @@ class CustomHelper
         }
     }
 
-    function fileUploadByBase64($base64String, $imageDirectory, $imageNameString = null, $modelFileUrl = null)
+    public static function fileUploadByBase64($base64String, $imageDirectory, $imageNameString = null, $modelFileUrl = null)
     {
         if ($base64String)
         {
@@ -530,7 +530,8 @@ class CustomHelper
             $options['json'] = $data;
         }
 
-		$url = env('REST_API_DOMAIN').$url;
+//		$url = env('REST_API_DOMAIN').$url;
+		$url =  config('helper-functions.custom.rest_api_domain').$url;
 
         try {
             $response = $client->request($method, $url, $options);
@@ -589,4 +590,10 @@ class CustomHelper
         }
         return false;
     }
+
+    private static function isToastrInstalled(): bool
+    {
+        return class_exists(\Brian2694\Toastr\Facades\Toastr::class);
+    }
+
 }
