@@ -4,8 +4,8 @@ A Laravel package providing comprehensive helper functions for handling API and 
 
 ## Requirements
 
-- PHP >= 8.2
-- Laravel 11.x or 12.x
+- PHP >= 8.2 (PHP >= 8.3 required for Laravel 13)
+- Laravel 11.x, 12.x, or 13.x
 
 ## Installation
 
@@ -166,8 +166,11 @@ $sessionCode = CustomHelper::getSessionCode('mobile_123');
 |--------|-------------|
 | `getFileExtension($file)` | Get file extension |
 | `getFileType($file)` | Get file MIME type |
-| `fileUpload($fileObject, $directory, $nameString, $modelFileUrl)` | Upload file to specified directory |
+| `isImageFile($file)` | Check if file is an image (jpeg, png, gif, webp, bmp) |
+| `fileUpload($fileObject, $directory, $nameString, $width, $height, $modelFileUrl)` | Upload file with optional image resizing via Intervention Image |
 | `fileUploadByBase64($base64String, $imageDirectory, $imageNameString, $modelFileUrl)` | Upload file from base64 string |
+| `deleteFile($filePath, $disk)` | Delete single file or array of files from disk/storage |
+| `deleteSingleFile($filePath, $disk)` | Delete a single file from disk or storage |
 
 ### Artisan Command Methods
 
@@ -178,6 +181,9 @@ $sessionCode = CustomHelper::getSessionCode('mobile_123');
 | `CacheRoute()` | Cache routes |
 | `optimizeClear()` | Clear all optimizations |
 | `clearCache()` | Clear application cache |
+| `migrate()` | Run database migrations |
+| `migrateFresh()` | Drop all tables and re-run migrations |
+| `migrateFreshSeed()` | Drop all tables, re-run migrations, and seed |
 
 ### Controller Methods (CustomHelperController)
 
@@ -228,12 +234,24 @@ public function boot()
 }
 ```
 
+### API Request Methods
+
+| Method | Description |
+|--------|-------------|
+| `requestApi($url, $method, $data, $headers, $timeout)` | Make HTTP requests (GET, POST, PUT, PATCH, DELETE) to external APIs |
+
+Set the base API domain in your `.env` file:
+
+```env
+REST_API_DOMAIN=https://api.example.com
+REST_API_KEY=your-api-key
+```
+
 ## Optional Dependencies
 
 The package works with these optional packages:
-- `brian2694/laravel-toastr` - For flash messages (optional)
-
-If this package is not installed, the package will skip the related functionality.
+- `brian2694/laravel-toastr` - For toast notifications in web responses. If not installed, toast calls are silently skipped and flash messages are still set via session.
+- `intervention/image` or `intervention/image-laravel` - For image resizing during file uploads. If not installed, files are uploaded without processing.
 
 ## License
 
