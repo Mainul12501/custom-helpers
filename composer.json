@@ -41,7 +41,7 @@
                 "Mainul\\CustomHelperFunctions\\HelperServiceProvider"
             ],
             "aliases": {
-                "ViewHelper": "Mainul\\CustomHelperFunctions\\Facades\\ViewHelper"
+                "ViewHelper": "Mainul\\CustomHelperFunctions\\Facades\\CustomHelper"
             }
         }
     },
